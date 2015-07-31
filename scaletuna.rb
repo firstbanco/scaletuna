@@ -15,9 +15,14 @@ P = Thread.new do
   }
 end
 init_screen
+def message(msg)
+  setpos(lines-1,0)
+  addstr msg
+  refresh
+end
 begin
   crmode
-  selected = [0,0]
+  selected = [0,2]
   stdscr.keypad = true
   stdscr.timeout = 100
   asc = Q.pop
@@ -42,24 +47,54 @@ begin
       }
     }
     refresh
+    change = 0
     begin
-      case getch
+      case (ch = getch)
       when KEY_UP
         selected[0]=[selected[0]-1,0].max
       when KEY_DOWN
-        selected[0]=[selected[0]+1,asc.length].min
+        selected[0]=[selected[0]+1,asc.length-1].min
       when KEY_LEFT      
-        C.set_desired_capacity(auto_scaling_group_name:selection.auto_scaling_group_name,
-                               desired_capacity:selection.desired_capacity-1,
-                               honor_cooldown:false)
-        selection.desired_capacity-=1
+        selected[1]=[selected[1]-1,0].max
       when KEY_RIGHT
-        C.set_desired_capacity(auto_scaling_group_name:selection.auto_scaling_group_name,
-                               desired_capacity:selection.desired_capacity+1,
-                               honor_cooldown:false)
-        selection.desired_capacity+=1
+        selected[1]=[selected[1]+1,2].min
+      when KEY_ENTER,"\n".ord,"\r".ord
+        change = +1
+      when KEY_BACKSPACE
+        change = -1
+      else
+        message "#{ch} not mapped" if ch
+      end
+      if change!=0
+        case selected[1]
+        when 2 # desired_capacity
+          new = selection.desired_capacity+change
+          message "setting desired capacity to #{new}"
+          C.set_desired_capacity(auto_scaling_group_name:
+                                 selection.auto_scaling_group_name,
+                                 desired_capacity:new,
+                                 honor_cooldown:false)
+          selection.desired_capacity = new
+        when 0 # min_size
+          new = selection.min_size+change
+          message "setting min size to #{new}"
+          C.update_auto_scaling_group(auto_scaling_group_name:
+                                      selection.auto_scaling_group_name,
+                                      min_size:new
+                                      )
+          selection.min_size = new
+        when 1 # max_size
+          new = selection.max_size+change
+          message "setting max size to #{new}"
+          C.update_auto_scaling_group(auto_scaling_group_name:
+                                      selection.auto_scaling_group_name,
+                                      max_size:new
+                                      )
+          selection.max_size = new
+        end
       end
     rescue Aws::AutoScaling::Errors::ValidationError => err
+      message err.to_s
     end
   }
   refresh
