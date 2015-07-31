@@ -48,6 +48,7 @@ begin
         addstr v.to_s[0...cols-j*8]
       }
     }
+    setpos(selected.first+1,selected.last*8)
     refresh
     change = 0
     begin
