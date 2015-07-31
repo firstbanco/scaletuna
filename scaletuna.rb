@@ -17,6 +17,7 @@ end
 init_screen
 def message(msg)
   setpos(lines-1,0)
+  clrtoeol
   addstr msg
   refresh
 end
@@ -34,12 +35,13 @@ begin
     end
     selection = asc[selected[0]]
     setpos(0,0)
-    addstr "min     max     desired name      updated:#{updated}"
+    addstr "min     max     desired current name      updated:#{updated}"
     asc.each_with_index{|e,i|
       i==selected.first && attron(A_REVERSE) || attroff(A_REVERSE)
       [e.min_size,
        e.max_size,
        e.desired_capacity,
+       e.instances.length,
        e.auto_scaling_group_name].each_with_index{|v,j|
         j==selected.last && attron(A_BOLD) || attroff(A_BOLD)
         setpos(i+1,j*8)
