@@ -21,6 +21,11 @@ def message(msg)
   addstr msg
   refresh
 end
+def quit(message = nil,code = 0)
+  close_screen
+  $stderr.puts message if message
+  exit code
+end
 begin
   crmode
   selected = [0,2]
@@ -37,13 +42,13 @@ begin
     setpos(0,0)
     addstr "min     max     desired current name      updated:#{updated}"
     asc.each_with_index{|e,i|
-      i==selected.first && attron(A_REVERSE) || attroff(A_REVERSE)
       [e.min_size,
        e.max_size,
        e.desired_capacity,
        e.instances.length,
        e.auto_scaling_group_name].each_with_index{|v,j|
-        j==selected.last && attron(A_BOLD) || attroff(A_BOLD)
+        (i==selected.first && j==selected.last) && attron(A_BOLD) || attroff(A_BOLD)
+        (i==selected.first || j==selected.last) && attron(A_REVERSE) || attroff(A_REVERSE)
         setpos(i+1,j*8)
         addstr v.to_s[0...cols-j*8]
       }
@@ -61,10 +66,12 @@ begin
         selected[1]=[selected[1]-1,0].max
       when KEY_RIGHT
         selected[1]=[selected[1]+1,2].min
-      when KEY_ENTER,"\n".ord,"\r".ord
+      when KEY_ENTER,"\n".ord,"\r".ord,"+"
         change = +1
-      when KEY_BACKSPACE
+      when KEY_BACKSPACE,"-"
         change = -1
+      when "q"
+        quit "Exiting normally (q)"
       else
         message "#{ch} not mapped" if ch
       end
@@ -102,9 +109,7 @@ begin
   }
   refresh
 rescue Interrupt
-  close_screen
-  $stderr.puts "Ctrl-c"
-  exit 130
+  quit("Ctrl-c",130)
 ensure
   close_screen
 end
