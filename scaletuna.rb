@@ -101,6 +101,10 @@ begin
     end
   }
   refresh
+rescue Interrupt
+  close_screen
+  $stderr.puts "Ctrl-c"
+  exit 130
 ensure
   close_screen
 end
