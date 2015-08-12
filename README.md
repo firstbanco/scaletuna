@@ -6,5 +6,5 @@ Curses program that shows the autoscaling groups (including current size) matche
 
 Keys: 
 - (up,down,left,right): Select parameter to modify
-- (return): Increase by one
-- (backspace): Decrease by one
+- (+,return): Increase by one
+- (-,backspace): Decrease by one
