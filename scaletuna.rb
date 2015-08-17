@@ -42,6 +42,7 @@ begin
     end
     selection = asc[selected[0]]
     setpos(0,0)
+    clrtoeol
     addstr "min     max     desired current name      updated:#{updated}"
     asc.each_with_index{|e,i|
       [e.min_size,
@@ -52,6 +53,7 @@ begin
         (i==selected.first && j==selected.last) && attron(A_BOLD) || attroff(A_BOLD)
         (i==selected.first || j==selected.last) && attron(A_REVERSE) || attroff(A_REVERSE)
         setpos(i+1,j*8)
+        clrtoeol
         addstr v.to_s[0...cols-j*8]
       }
     }
