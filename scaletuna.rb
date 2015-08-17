@@ -5,6 +5,7 @@ include Curses
 require "aws-sdk"
 C = Aws::AutoScaling::Client.new
 Q = Queue.new
+I = []
 P = Thread.new do
   loop {
     Q << C
@@ -19,6 +20,7 @@ def message(msg)
   setpos(lines-1,0)
   clrtoeol
   addstr msg
+  I << msg
   refresh
 end
 def quit(message = nil,code = 0)
@@ -54,6 +56,7 @@ begin
       }
     }
     setpos(selected.first+1,selected.last*8)
+    attroff A_BOLD
     refresh
     change = 0
     begin
@@ -71,15 +74,17 @@ begin
       when KEY_BACKSPACE,"-"
         change = -1
       when "q"
-        quit "Exiting normally (q)"
+        quit (I<<"Exited normally").join("\n")
       else
         message "#{ch} not mapped" if ch
       end
       if change!=0
+        name = selection.auto_scaling_group_name
+
         case selected[1]
-        when 2 # desired_capacity
+        when 2 # desired_capacity          
           new = selection.desired_capacity+change
-          message "setting desired capacity to #{new}"
+          message "Setting desired capacity of #{name} to #{new}"          
           C.set_desired_capacity(auto_scaling_group_name:
                                  selection.auto_scaling_group_name,
                                  desired_capacity:new,
@@ -87,7 +92,7 @@ begin
           selection.desired_capacity = new
         when 0 # min_size
           new = selection.min_size+change
-          message "setting min size to #{new}"
+          message "Setting min size of #{name} to #{new}"
           C.update_auto_scaling_group(auto_scaling_group_name:
                                       selection.auto_scaling_group_name,
                                       min_size:new
@@ -95,7 +100,7 @@ begin
           selection.min_size = new
         when 1 # max_size
           new = selection.max_size+change
-          message "setting max size to #{new}"
+          message "Setting max size of #{name} to #{new}"
           C.update_auto_scaling_group(auto_scaling_group_name:
                                       selection.auto_scaling_group_name,
                                       max_size:new
