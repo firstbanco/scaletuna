@@ -76,9 +76,9 @@ begin
       when KEY_BACKSPACE,"-"
         change = -1
       when "q"
-        quit (I<<"Exited normally").join("\n")
+        quit (I<<"Exited normally").join("\n")      
       else
-        message "#{ch} not mapped" if ch
+        message "#{ch} not mapped (+,- to increase or decrease, and move with arrows)" if ch
       end
       if change!=0
         name = selection.auto_scaling_group_name
