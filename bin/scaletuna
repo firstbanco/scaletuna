@@ -12,6 +12,7 @@ def quit(message = nil, code = 0)
 end
 begin
   C = Aws::AutoScaling::Client.new
+  F = /#{ARGV[0] || ENV['SCALETUNA_FILTER'] || "."}/
 rescue Exception => ex
   quit("Error: #{ex}", -1)
 end
@@ -21,7 +22,7 @@ P = Thread.new do
       Q << C
            .describe_auto_scaling_groups
            .auto_scaling_groups
-           .select { |a| a.auto_scaling_group_name[/#{ARGV[0] || ENV['SCALETUNA_FILTER'] || "."}/] }
+           .select { |a| a.auto_scaling_group_name[F] }
     }
   rescue Exception => ex
     quit("Error: #{ex}", -1)

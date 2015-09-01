@@ -1,3 +1,0 @@
-#!/bin/bash
-bundle check >& /dev/null || bundle install
-bundle exec ruby scaletuna.rb $ENVIRONMENT
