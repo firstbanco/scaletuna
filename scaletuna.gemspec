@@ -6,7 +6,7 @@ Gem::Specification.new do |s|
   s.description = "Scaling AWS autoscalers using a curses interface"
   s.authors     = ["Samuel Kleiner"]
   s.email       = 'samuel.kleiner@bambooloans.com'
-  s.files       = ["scaletuna"]
+  s.files       = ["bin/scaletuna"]
   s.executables << 'scaletuna'
   s.homepage    =
     'http://rubygems.org/gems/scaletuna'
