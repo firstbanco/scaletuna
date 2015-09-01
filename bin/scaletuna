@@ -21,7 +21,7 @@ P = Thread.new do
       Q << C
            .describe_auto_scaling_groups
            .auto_scaling_groups
-           .select { |a| a.auto_scaling_group_name[/#{ARGV[0] || "."}/] }
+           .select { |a| a.auto_scaling_group_name[/#{ARGV[0] || ENV['SCALETUNA_FILTER'] || "."}/] }
     }
   rescue Exception => ex
     quit("Error: #{ex}", -1)
