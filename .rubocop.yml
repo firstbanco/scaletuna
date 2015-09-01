@@ -1,0 +1,15 @@
+# See https://github.com/bbatsov/rubocop/blob/master/config/default.yml
+AllCops:
+  DisplayCopNames: true
+Style/Blocks: # Support old name for this rule until Hound is upgraded...
+  Enabled: false
+Style/BlockDelimiters: # ... and handle the new name for it when it is.
+  Enabled: false
+Style/DotPosition:
+  EnforcedStyle: leading
+Style/StringLiterals:
+  Enabled: false
+Metrics/LineLength:
+  Max: 100
+Metrics/AbcSize:
+  Enabled: false
