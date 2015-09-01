@@ -3,17 +3,29 @@
 require "curses"
 include Curses
 require "aws-sdk"
-C = Aws::AutoScaling::Client.new
 Q = Queue.new
 I = []
-P = Thread.new do
-  loop {
-    Q << C
-      .describe_auto_scaling_groups
-      .auto_scaling_groups
-      .select{|a| a.auto_scaling_group_name[/#{ARGV[0]||"."}/]}
-    sleep 1
-  }
+def quit(message = nil,code = 0)
+  close_screen
+  $stderr.puts message if message
+  exit code
+end
+begin
+  C = Aws::AutoScaling::Client.new
+rescue Exception => ex
+  quit( "Error: #{ex}", -1 )
+end
+P = Thread.new do  
+  begin
+    loop {
+      Q << C
+        .describe_auto_scaling_groups
+        .auto_scaling_groups
+        .select{|a| a.auto_scaling_group_name[/#{ARGV[0]||"."}/]}
+    }
+  rescue Exception => ex
+    quit( "Error: #{ex}", -1 )
+  end
 end
 init_screen
 def message(msg)
@@ -22,11 +34,6 @@ def message(msg)
   addstr msg
   I << msg
   refresh
-end
-def quit(message = nil,code = 0)
-  close_screen
-  $stderr.puts message if message
-  exit code
 end
 begin
   crmode
@@ -76,7 +83,7 @@ begin
       when KEY_BACKSPACE,"-"
         change = -1
       when "q"
-        quit (I<<"Exited normally").join("\n")      
+        quit (I << "Exited normally").join("\n")      
       else
         message "#{ch} not mapped (+,- to increase or decrease, and move with arrows)" if ch
       end
@@ -111,7 +118,7 @@ begin
         end
       end
     rescue Aws::AutoScaling::Errors::ValidationError => err
-      message err.to_s
+      message "Error: #{err.to_s}"
     end
   }
   refresh
