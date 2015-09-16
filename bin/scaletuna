@@ -29,11 +29,11 @@ P = Thread.new do
   end
 end
 init_screen
-def message(msg)
+def message(msg, showinlog = true)
   setpos(lines - 1, 0)
   clrtoeol
   addstr msg
-  I << msg
+  I << msg if showinlog
   refresh
 end
 begin
@@ -43,6 +43,7 @@ begin
   stdscr.timeout = 100
   asc = Q.pop
   updated = Time.now
+  enteringnumber = ""
   loop {
     unless Q.empty?
       asc = Q.pop
@@ -53,6 +54,7 @@ begin
     clrtoeol
     addstr "min     max     desired current name      updated:#{updated}"
     asc.each_with_index {|e, i|
+      setpos(i + 1, 0)
       clrtoeol
       [e.min_size,
        e.max_size,
@@ -69,6 +71,7 @@ begin
     attroff A_BOLD
     refresh
     change = 0
+    force_set = nil
     begin
       case (ch = getch)
       when KEY_UP
@@ -79,21 +82,32 @@ begin
         selected[1] = [selected[1] - 1, 0].max
       when KEY_RIGHT
         selected[1] = [selected[1] + 1, 2].min
-      when KEY_ENTER, "\n".ord, "\r".ord, "+"
+      when "+"
         change = +1
-      when KEY_BACKSPACE, "-"
+      when "-"
         change = -1
+      when KEY_BACKSPACE
+        enteringnumber = enteringnumber[0..-2]
+        message("##{enteringnumber}", false)
+      when /[0-9]/
+        enteringnumber += ch.to_s
+        message("##{enteringnumber}", false)
+      when KEY_ENTER, "\n".ord, "\r".ord
+        if enteringnumber.size > 0
+          force_set = enteringnumber.to_i
+        end
+        enteringnumber = "" 
       when "q"
-        quit (I << "Exited normally").join("\n")
+        quit((I << "Exited normally").join("\n"))
       else
-        message "#{ch} not mapped (+,- to increase or decrease, and move with arrows)" if ch
+        message("#{ch} not mapped (+,- to increase or decrease, and move with arrows)", false) if ch
       end
-      if change != 0
+      if change != 0 || !force_set.nil?
         name = selection.auto_scaling_group_name
 
         case selected[1]
         when 2 # desired_capacity
-          new = selection.desired_capacity + change
+          new = force_set || selection.desired_capacity + change
           message "Setting desired capacity of #{name} to #{new}"
           C.set_desired_capacity(auto_scaling_group_name:
                                  selection.auto_scaling_group_name,
@@ -101,7 +115,7 @@ begin
                                  honor_cooldown: false)
           selection.desired_capacity = new
         when 0 # min_size
-          new = selection.min_size + change
+          new = force_set || selection.min_size + change
           message "Setting min size of #{name} to #{new}"
           C.update_auto_scaling_group(auto_scaling_group_name:
                                       selection.auto_scaling_group_name,
@@ -109,7 +123,7 @@ begin
                                      )
           selection.min_size = new
         when 1 # max_size
-          new = selection.max_size + change
+          new = force_set || selection.max_size + change
           message "Setting max size of #{name} to #{new}"
           C.update_auto_scaling_group(auto_scaling_group_name:
                                       selection.auto_scaling_group_name,
