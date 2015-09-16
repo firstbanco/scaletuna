@@ -8,10 +8,10 @@ The only argument is a regular expression that is matched against your autoscali
 
 Keys: 
 - (`up`,`down`,`left`,`right`): Select parameter to modify
-- (`+`,`return`): Increase by one
-- (`-`,`backspace`): Decrease by one
+- (`+`): Increase by one
+- (`-`): Decrease by one
 - (`q`): Quit and print all operations performed
-
+- (`0-9`): Begin writing a desired number, complete with return or enter
 
 ## Installation
 
