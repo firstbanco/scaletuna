@@ -1,6 +1,6 @@
 Gem::Specification.new do |s|
   s.name        = 'scaletuna'
-  s.version     = '0.1.2'
+  s.version     = '0.1.3'
   s.date        = '2015-09-01'
   s.summary     = "Curses AWS autoscaling"
   s.description = "Scaling AWS autoscalers using a curses interface"
