@@ -38,6 +38,7 @@ def message(msg, showinlog = true)
 end
 begin
   crmode
+  noecho
   selected = [0, 2]
   stdscr.keypad = true
   stdscr.timeout = 100
