@@ -12,7 +12,7 @@ def quit(message = nil, code = 0)
 end
 begin
   C = Aws::AutoScaling::Client.new
-  F = /#{ARGV[0] || ENV['SCALETUNA_FILTER'] || "."}/
+  F = /#{ARGV[0] || ENV['SCALETUNA_FILTER'] || "."}/i
 rescue Exception => ex
   quit("Error: #{ex}", -1)
 end
