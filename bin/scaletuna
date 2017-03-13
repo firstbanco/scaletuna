@@ -3,32 +3,39 @@
 require "curses"
 include Curses
 require "aws-sdk"
+
 Q = Queue.new
+
 I = []
+
 def quit(message = nil, code = 0)
   close_screen
   $stderr.puts message if message
   exit code
 end
+
 begin
   C = Aws::AutoScaling::Client.new
   F = /#{ARGV[0] || ENV['SCALETUNA_FILTER'] || "."}/i
 rescue Exception => ex
   quit("Error: #{ex}", -1)
 end
-P = Thread.new do
+
+asg_update_thread = Thread.new do
   begin
-    loop {
-      Q << C
-           .describe_auto_scaling_groups
-           .auto_scaling_groups
-           .select { |a| a.auto_scaling_group_name[F] }
-    }
+    loop do
+      asgs = C.describe_auto_scaling_groups.auto_scaling_groups.select { |a|
+        a.auto_scaling_group_name[F]
+      }
+
+      Q << { type: :asg_update, data: asgs }
+      sleep 2
+    end
   rescue Exception => ex
     quit("Error: #{ex}", -1)
   end
 end
-init_screen
+
 def message(msg, showinlog = true)
   setpos(lines - 1, 0)
   clrtoeol
@@ -36,49 +43,71 @@ def message(msg, showinlog = true)
   I << msg if showinlog
   refresh
 end
+
+def update_screen(asgs, selected)
+  setpos(0, 0)
+  clrtoeol
+  addstr "min     max     desired current name      updated: #{Time.now}"
+
+  asgs.each_with_index do |e, i|
+    setpos(i + 1, 0)
+    clrtoeol
+
+    [
+      e.min_size,
+      e.max_size,
+      e.desired_capacity,
+      e.instances.length,
+      e.auto_scaling_group_name
+    ].each_with_index do |v, j|
+      (i == selected.first && j == selected.last) && attron(A_BOLD) || attroff(A_BOLD)
+      (i == selected.first || j == selected.last) && attron(A_REVERSE) || attroff(A_REVERSE)
+      setpos(i + 1, j * 8)
+      addstr v.to_s[0...cols - j * 8]
+    end
+  end
+
+  setpos(selected.first + 1, selected.last * 8)
+  attroff A_BOLD
+  refresh
+end
+
+init_screen
 begin
   crmode
   noecho
   selected = [0, 2]
   stdscr.keypad = true
-  stdscr.timeout = 100
-  asc = Q.pop
-  updated = Time.now
-  enteringnumber = ""
-  loop {
-    unless Q.empty?
-      asc = Q.pop
-      updated = Time.now
+  # Assumes the first event will be of type :asg_update
+  asgs = Q.pop.fetch(:data)
+  update_screen(asgs, selected)
+
+  blocking_keypress_thread = Thread.new do
+    loop do
+      stdscr.timeout = -1 # blocking
+
+      ch = stdscr.getch
+
+      Q << { type: :keypress, data: ch }
     end
-    selection = asc[selected[0]]
-    setpos(0, 0)
-    clrtoeol
-    addstr "min     max     desired current name      updated:#{updated}"
-    asc.each_with_index {|e, i|
-      setpos(i + 1, 0)
-      clrtoeol
-      [e.min_size,
-       e.max_size,
-       e.desired_capacity,
-       e.instances.length,
-       e.auto_scaling_group_name].each_with_index {|v, j|
-        (i == selected.first && j == selected.last) && attron(A_BOLD) || attroff(A_BOLD)
-        (i == selected.first || j == selected.last) && attron(A_REVERSE) || attroff(A_REVERSE)
-        setpos(i + 1, j * 8)
-        addstr v.to_s[0...cols - j * 8]
-      }
-    }
-    setpos(selected.first + 1, selected.last * 8)
-    attroff A_BOLD
-    refresh
+  end
+
+  enteringnumber = ""
+
+  loop do
+    event = Q.pop
+
     change = 0
     force_set = nil
-    begin
-      case (ch = getch)
+
+    case event.fetch(:type)
+    when :keypress
+      ch = event.fetch(:data)
+      case ch
       when KEY_UP
         selected[0] = [selected[0] - 1, 0].max
       when KEY_DOWN
-        selected[0] = [selected[0] + 1, asc.length - 1].min
+        selected[0] = [selected[0] + 1, asgs.length - 1].min
       when KEY_LEFT
         selected[1] = [selected[1] - 1, 0].max
       when KEY_RIGHT
@@ -97,12 +126,19 @@ begin
         if enteringnumber.size > 0
           force_set = enteringnumber.to_i
         end
-        enteringnumber = "" 
+        enteringnumber = ""
       when "q"
         quit((I << "Exited normally").join("\n"))
       else
-        message("#{ch} not mapped (+,- to increase or decrease, and move with arrows)", false) if ch
+        message("#{ch} not mapped (+,- to increase or decrease, and move with arrows)", false)
       end
+    when :asg_update
+      asgs = event.fetch(:data)
+    end
+
+    begin
+      selection = asgs[selected[0]]
+
       if change != 0 || !force_set.nil?
         name = selection.auto_scaling_group_name
 
@@ -136,10 +172,14 @@ begin
     rescue Aws::AutoScaling::Errors::ValidationError => err
       message "Error: #{err}"
     end
-  }
-  refresh
+
+    update_screen(asgs, selected)
+  end
 rescue Interrupt
   quit("Ctrl-c", 130)
 ensure
+  Thread.kill(blocking_keypress_thread)
+  Thread.kill(asg_update_thread)
+
   close_screen
 end
