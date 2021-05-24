@@ -2,7 +2,7 @@
 
 require "curses"
 include Curses
-require "aws-sdk"
+require "aws-sdk-autoscaling"
 
 Q = Queue.new
 
