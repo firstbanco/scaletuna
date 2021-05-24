@@ -1,4 +1,4 @@
 source 'https://rubygems.org'
 
-gem 'curses'
-gem 'aws-sdk', '~> 2'
+gem 'curses', '~> 1.4'
+gem 'aws-sdk-autoscaling', '~> 1.61'
